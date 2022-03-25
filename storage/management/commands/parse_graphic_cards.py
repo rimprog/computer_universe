@@ -2,6 +2,8 @@ import os
 import time
 
 from django.core.management.base import BaseCommand, CommandError
+
+import schedule
 from selenium import webdriver
 
 from storage.models import GraphicCard
@@ -11,10 +13,10 @@ from storage.utils.computeruniverse_parser import parse_graphic_cards_catalogue
 class Command(BaseCommand):
     help = 'Parsing graphic cards names, links, prices from https://www.computeruniverse.net/'
 
-    def add_arguments(self, parser):
+    def check_price_change(self, graphic_card):
         pass
 
-    def handle(self, *args, **options):
+    def parse_graphic_cards(self):
         chromedriver_path = os.path.join(os.getcwd(), 'chromedriver')
         driver = webdriver.Chrome(chromedriver_path)
 
@@ -43,3 +45,13 @@ class Command(BaseCommand):
 
         if not created_graphic_cards:
             self.stdout.write(self.style.WARNING('New graphic cards are not found\n'))
+
+    def add_arguments(self, parser):
+        pass
+
+    def handle(self, *args, **options):
+        schedule.every(3).seconds.do(self.parse_graphic_cards)
+
+        while True:
+            schedule.run_pending()
+            time.sleep(1)
