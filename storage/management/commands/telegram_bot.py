@@ -1,4 +1,5 @@
 from django.core.management.base import BaseCommand, CommandError
+from django.conf import settings
 
 from storage.models import GraphicCard
 
@@ -36,6 +37,5 @@ class Command(BaseCommand):
     help = 'Telegram bot. Sending parsing results of computeruniverse graphic cards.'
 
     def handle(self, *args, **options):
-        telegram_bot_token = 'TELEGRAM_TOKEN'
-        telegram_bot = TelegramBot(telegram_bot_token)
+        telegram_bot = TelegramBot(settings.TELEGRAM_BOT_TOKEN)
         telegram_bot.polling(none_stop=True, interval=0)

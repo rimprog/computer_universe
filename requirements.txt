@@ -6,3 +6,4 @@ tqdm==4.63.0
 Django==3.2.12
 schedule==1.1.0
 pytelegrambotapi==4.4.0
+environs==9.5.0
