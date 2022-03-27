@@ -14,3 +14,17 @@ class GraphicCard(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class TelegramUser(models.Model):
+    telegram_id = models.CharField('телеграм id', max_length=200)
+    is_active = models.BooleanField('учетная запись активирована', default=False)
+    min_price = models.FloatField('минимальная цена видеокарты к показу', null=True, blank=True)
+    max_price = models.FloatField('максимальная цена видеокарты к показу', null=True, blank=True)
+
+    class Meta:
+        verbose_name = 'пльзователь телеграм'
+        verbose_name_plural = 'пользователи телеграма'
+
+    def __str__(self):
+        return self.telegram_id
