@@ -108,7 +108,7 @@ class TelegramBot(telebot.TeleBot):
                 telegram_user.save()
                 bot.send_message(
                     message.chat.id,
-                    f'Теперь вам будут показаны видеокарты начиная с {max_price} рублей.',
+                    f'Теперь вам будут показаны видеокарты до {max_price} рублей.',
                 )
             except ValueError:
                 bot.send_message(
@@ -137,9 +137,11 @@ class TelegramBot(telebot.TeleBot):
             telegram_user = TelegramUser.objects.get(telegram_id=message.from_user.id)
             graphic_cards = GraphicCard.objects.all()
             if telegram_user.min_price:
-                graphic_cards = GraphicCard.objects.filter(current_rub_price__gte=telegram_user.min_price)
+                graphic_cards = graphic_cards.filter(current_rub_price__gte=telegram_user.min_price)
             if telegram_user.max_price:
-                graphic_cards = GraphicCard.objects.filter(current_rub_price__lte=telegram_user.max_price)
+                graphic_cards = graphic_cards.filter(current_rub_price__lte=telegram_user.max_price)
+
+            print([graphic_card.current_rub_price for graphic_card in graphic_cards])
 
             graphic_cards_output_template = create_graphic_cards_output_template(graphic_cards)
 
