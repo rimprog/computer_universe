@@ -35,6 +35,7 @@ def combine_prices(prices):
             price_sequence_start_index = index + 4
             continue
         elif index == price_sequence_start_index:
+            old_price_index = -1
             current_eur_price_index = index
             current_rub_price_index = index + 1
             price_sequence_start_index = index + 2
@@ -52,6 +53,19 @@ def combine_prices(prices):
             price_sequence = {}
 
     return combined_prices
+
+
+def fill_missing_fields(prices):
+    fullfilled_prices = []
+    for price in prices:
+        try:
+            price['old_price']
+            fullfilled_prices.append(price)
+        except KeyError:
+            price['old_price'] = None
+            fullfilled_prices.append(price)
+
+    return fullfilled_prices
 
 
 def parse_last_page_number(driver):
@@ -88,9 +102,10 @@ def prepare_parsed_graphic_cards_page(parsed_graphic_cards_page):
 
     graphic_cards_full_urls = [urljoin('https://www.computeruniverse.net/', graphic_card_relative_url) for graphic_card_relative_url in graphic_cards_relative_urls]
     graphic_cards_combined_prices = combine_prices(graphic_cards_prices)
+    full_graphic_cards_combined_price = fill_missing_fields(graphic_cards_combined_prices)
 
     graphic_cards_page = []
-    for name, url, price in zip(graphic_cards_names, graphic_cards_full_urls, graphic_cards_combined_prices):
+    for name, url, price in zip(graphic_cards_names, graphic_cards_full_urls, full_graphic_cards_combined_price):
         graphic_card = {}
         graphic_card['name'] = name
         graphic_card['url'] = url
