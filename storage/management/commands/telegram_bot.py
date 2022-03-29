@@ -43,6 +43,19 @@ class TelegramBot(telebot.TeleBot):
 
             return markup
 
+        def create_graphic_cards_output_template(graphic_cards):
+            graphic_cards_output_template = ''
+            for graphic_card in graphic_cards:
+                graphic_card_output_template = f'*{graphic_card.name}*\
+                                                 \nСтарая цена: {graphic_card.old_price} EUR\
+                                                 \nНовая цена: {graphic_card.current_eur_price} EUR\
+                                                 \nЦена по курсу: {graphic_card.current_rub_price} руб.\
+                                                 \n{graphic_card.url}'
+                graphic_cards_output_template = graphic_cards_output_template + graphic_card_output_template + '\n\n'
+
+            return graphic_cards_output_template
+
+
         @bot.message_handler(commands=["start"])
         def start(message):
             telegram_user_id = message.from_user.id
@@ -121,20 +134,28 @@ class TelegramBot(telebot.TeleBot):
 
         @bot.message_handler(content_types=["text"], text=['Видеокарты'], is_access=True)
         def handle_graphic_cards(message):
+            telegram_user = TelegramUser.objects.get(telegram_id=message.from_user.id)
             graphic_cards = GraphicCard.objects.all()
-            graphic_cards_names = str([graphic_card.name for graphic_card in graphic_cards])
-            bot.send_message(
-                message.chat.id,
-                graphic_cards_names,
-                # reply_markup=telebot.types.ReplyKeyboardRemove()
-            )
+            if telegram_user.min_price:
+                graphic_cards = GraphicCard.objects.filter(current_rub_price__gte=telegram_user.min_price)
+            if telegram_user.max_price:
+                graphic_cards = GraphicCard.objects.filter(current_rub_price__lte=telegram_user.max_price)
+
+            graphic_cards_output_template = create_graphic_cards_output_template(graphic_cards)
+
+            splitted_text = telebot.util.smart_split(graphic_cards_output_template, chars_per_string=3000)
+            for text in splitted_text:
+                bot.send_message(
+                    message.chat.id,
+                    text,
+                    parse_mode="Markdown"
+                )
 
         @bot.message_handler(content_types=["text"], text=['Минимальная цена за видеокарту'], is_access=True)
         def handle_min_price_filter(message):
             bot.send_message(
                 message.chat.id,
                 'Введите цену в рублях, начиная с которой вы хотите получать предложения видеокарт. Пример ввода:\n/MinPrice 20000',
-                # reply_markup=create_settings_menu()
             )
 
         @bot.message_handler(content_types=["text"], text=['Максимальная цена за видеокарту'], is_access=True)
@@ -142,7 +163,6 @@ class TelegramBot(telebot.TeleBot):
             bot.send_message(
                 message.chat.id,
                 'Введите цену в рублях, до которой вы хотите получать предложения видеокарт. Пример ввода:\n/MaxPrice 100000',
-                # reply_markup=create_settings_menu()
             )
 
 
