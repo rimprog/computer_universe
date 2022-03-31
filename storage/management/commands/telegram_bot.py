@@ -55,7 +55,6 @@ class TelegramBot(telebot.TeleBot):
 
             return graphic_cards_output_template
 
-
         @bot.message_handler(commands=["start"])
         def start(message):
             telegram_user_id = message.from_user.id
@@ -141,8 +140,6 @@ class TelegramBot(telebot.TeleBot):
             if telegram_user.max_price:
                 graphic_cards = graphic_cards.filter(current_rub_price__lte=telegram_user.max_price)
 
-            print([graphic_card.current_rub_price for graphic_card in graphic_cards])
-
             graphic_cards_output_template = create_graphic_cards_output_template(graphic_cards)
 
             splitted_text = telebot.util.smart_split(graphic_cards_output_template, chars_per_string=3000)
@@ -175,4 +172,4 @@ class Command(BaseCommand):
         telegram_bot = TelegramBot(settings.TELEGRAM_BOT_TOKEN)
         telegram_bot.add_custom_filter(telebot.custom_filters.TextMatchFilter())
         telegram_bot.add_custom_filter(IsAccess())
-        telegram_bot.polling(none_stop=True, interval=0)
+        telegram_bot.infinity_polling()
