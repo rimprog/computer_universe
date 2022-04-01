@@ -24,7 +24,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
 
-        schedule.every(3).seconds.do(self.notify)
+        schedule.every(30).seconds.do(self.notify)
 
         while True:
             schedule.run_pending()

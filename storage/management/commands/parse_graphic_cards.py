@@ -50,8 +50,12 @@ class Command(BaseCommand):
 
     def parse_graphic_cards(self):
         try:
+            option = webdriver.ChromeOptions()
+
+            option.add_argument('--disable-blink-features=AutomationControlled')
+
             chromedriver_path = os.path.join(os.getcwd(), 'chromedriver')
-            driver = webdriver.Chrome(chromedriver_path)
+            driver = webdriver.Chrome(chromedriver_path, options=option)
 
             graphic_cards_raw = parse_graphic_cards_catalogue(driver)
 
