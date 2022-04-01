@@ -49,6 +49,22 @@ class TelegramBot(telebot.TeleBot):
                     reply_markup=markup
                 )
 
+        @bot.message_handler(content_types=["text"], text=['Главное меню'], is_access=True)
+        def handle_main_menu(message):
+            bot.send_message(
+                message.chat.id,
+                'Нажми кнопку "Видеокарты", чтобы получить список имеющихся видеокарт.\nНажмите кнопку "Настройки", чтобы перейти к настройкам бота.',
+                reply_markup=self.create_main_menu()
+            )
+
+        @bot.message_handler(content_types=["text"], text=['Настройки бота'], is_access=True)
+        def handle_bot_settings(message):
+            bot.send_message(
+                message.chat.id,
+                'Настройте бота. Ограничьте цены присылаемых вам видеокарт требуемым диапазоном.',
+                reply_markup=self.create_settings_menu()
+            )
+
         @bot.message_handler(commands=["MinPrice"], is_access=True)
         def get_min_price_filter(message):
             try:
@@ -83,28 +99,13 @@ class TelegramBot(telebot.TeleBot):
                     'Введите корректную цену числом. Пример ввода:\n/MaxPrice 100000',
                 )
 
-        @bot.message_handler(content_types=["text"], text=['Главное меню'], is_access=True)
-        def handle_main_menu(message):
-            bot.send_message(
-                message.chat.id,
-                'Нажми кнопку "Видеокарты", чтобы получить список имеющихся видеокарт.\nНажмите кнопку "Настройки", чтобы перейти к настройкам бота.',
-                reply_markup=self.create_main_menu()
-            )
-
-        @bot.message_handler(content_types=["text"], text=['Настройки бота'], is_access=True)
-        def handle_bot_settings(message):
-            bot.send_message(
-                message.chat.id,
-                'Настройте бота. Ограничьте цены присылаемых вам видеокарт требуемым диапазоном.',
-                reply_markup=self.create_settings_menu()
-            )
-
         @bot.message_handler(content_types=["text"], text=['Видеокарты'], is_access=True)
         def handle_graphic_cards(message):
             telegram_user = TelegramUser.objects.get(telegram_id=message.from_user.id)
-            graphic_cards = self.filter_graphic_cards_by_tg_user_settings(telegram_user)
+            graphic_cards = GraphicCard.objects.all()
+            filtered_graphic_cards = self.filter_graphic_cards_by_tg_user_settings(telegram_user, graphic_cards)
 
-            graphic_cards_output_template = self.create_graphic_cards_output_template(graphic_cards)
+            graphic_cards_output_template = self.create_graphic_cards_output_template(filtered_graphic_cards)
 
             splitted_text = telebot.util.smart_split(graphic_cards_output_template, chars_per_string=3000)
             for text in splitted_text:
@@ -160,8 +161,7 @@ class TelegramBot(telebot.TeleBot):
 
         return graphic_cards_output_template
 
-    def filter_graphic_cards_by_tg_user_settings(self, telegram_user):
-        graphic_cards = GraphicCard.objects.all()
+    def filter_graphic_cards_by_tg_user_settings(self, telegram_user, graphic_cards):
         if telegram_user.min_price:
             graphic_cards = graphic_cards.filter(current_rub_price__gte=telegram_user.min_price)
         if telegram_user.max_price:
@@ -174,10 +174,13 @@ class TelegramBot(telebot.TeleBot):
         if not graphic_cards:
             return False
 
-        graphic_cards_output_template = self.create_graphic_cards_output_template(graphic_cards)
-
         tg_users = TelegramUser.objects.filter(is_active=True)
         for tg_user in tg_users:
+            filtered_graphic_cards = self.filter_graphic_cards_by_tg_user_settings(tg_user, graphic_cards)
+            if not filtered_graphic_cards:
+                continue
+
+            graphic_cards_output_template = self.create_graphic_cards_output_template(filtered_graphic_cards)
             splitted_text = telebot.util.smart_split(graphic_cards_output_template, chars_per_string=3000)
             for text in splitted_text:
                 self.send_message(
