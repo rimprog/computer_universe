@@ -86,3 +86,7 @@ New updated cards was not found.
 ## Цели проекта
 
 Код написан в рамках командного проекта учебной программы от [новичка до Middle](https://dvmn.org/t/middle-python-dev-before-you-finish-the-course/) на онлайн курсах обучению программирования python [Devman](https://dvmn.org/).
+
+## Контакты
+
+Почта для обратной связи: riminprog@yandex.ru
