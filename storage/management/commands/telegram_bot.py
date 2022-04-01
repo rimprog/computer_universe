@@ -23,38 +23,6 @@ class TelegramBot(telebot.TeleBot):
         super().__init__(token)
         bot = self
 
-        def create_main_menu():
-            markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True) #, one_time_keyboard=True)
-            graphic_card_button = telebot.types.KeyboardButton("Видеокарты")
-            bot_settings_button = telebot.types.KeyboardButton("Настройки бота")
-            markup.add(graphic_card_button)
-            markup.add(bot_settings_button)
-
-            return markup
-
-        def create_settings_menu():
-            markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
-            min_graphic_card_price_button = telebot.types.KeyboardButton("Минимальная цена за видеокарту")
-            max_graphic_card_price_button = telebot.types.KeyboardButton("Максимальная цена за видеокарту")
-            main_menu_button = telebot.types.KeyboardButton("Главное меню")
-            markup.add(min_graphic_card_price_button)
-            markup.add(max_graphic_card_price_button)
-            markup.add(main_menu_button)
-
-            return markup
-
-        def create_graphic_cards_output_template(graphic_cards):
-            graphic_cards_output_template = ''
-            for graphic_card in graphic_cards:
-                graphic_card_output_template = f'*{graphic_card.name}*\
-                                                 \nСтарая цена: {graphic_card.old_price} EUR\
-                                                 \nНовая цена: {graphic_card.current_eur_price} EUR\
-                                                 \nЦена по курсу: {graphic_card.current_rub_price} руб.\
-                                                 \n{graphic_card.url}'
-                graphic_cards_output_template = graphic_cards_output_template + graphic_card_output_template + '\n\n'
-
-            return graphic_cards_output_template
-
         @bot.message_handler(commands=["start"])
         def start(message):
             telegram_user_id = message.from_user.id
@@ -120,7 +88,7 @@ class TelegramBot(telebot.TeleBot):
             bot.send_message(
                 message.chat.id,
                 'Нажми кнопку "Видеокарты", чтобы получить список имеющихся видеокарт.\nНажмите кнопку "Настройки", чтобы перейти к настройкам бота.',
-                reply_markup=create_main_menu()
+                reply_markup=self.create_main_menu()
             )
 
         @bot.message_handler(content_types=["text"], text=['Настройки бота'], is_access=True)
@@ -128,19 +96,15 @@ class TelegramBot(telebot.TeleBot):
             bot.send_message(
                 message.chat.id,
                 'Настройте бота. Ограничьте цены присылаемых вам видеокарт требуемым диапазоном.',
-                reply_markup=create_settings_menu()
+                reply_markup=self.create_settings_menu()
             )
 
         @bot.message_handler(content_types=["text"], text=['Видеокарты'], is_access=True)
         def handle_graphic_cards(message):
             telegram_user = TelegramUser.objects.get(telegram_id=message.from_user.id)
-            graphic_cards = GraphicCard.objects.all()
-            if telegram_user.min_price:
-                graphic_cards = graphic_cards.filter(current_rub_price__gte=telegram_user.min_price)
-            if telegram_user.max_price:
-                graphic_cards = graphic_cards.filter(current_rub_price__lte=telegram_user.max_price)
+            graphic_cards = self.filter_graphic_cards_by_tg_user_settings(telegram_user)
 
-            graphic_cards_output_template = create_graphic_cards_output_template(graphic_cards)
+            graphic_cards_output_template = self.create_graphic_cards_output_template(graphic_cards)
 
             splitted_text = telebot.util.smart_split(graphic_cards_output_template, chars_per_string=3000)
             for text in splitted_text:
@@ -163,6 +127,70 @@ class TelegramBot(telebot.TeleBot):
                 message.chat.id,
                 'Введите цену в рублях, до которой вы хотите получать предложения видеокарт. Пример ввода:\n/MaxPrice 100000',
             )
+
+    def create_main_menu(self):
+        markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True) #, one_time_keyboard=True)
+        graphic_card_button = telebot.types.KeyboardButton("Видеокарты")
+        bot_settings_button = telebot.types.KeyboardButton("Настройки бота")
+        markup.add(graphic_card_button)
+        markup.add(bot_settings_button)
+
+        return markup
+
+    def create_settings_menu(self):
+        markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
+        min_graphic_card_price_button = telebot.types.KeyboardButton("Минимальная цена за видеокарту")
+        max_graphic_card_price_button = telebot.types.KeyboardButton("Максимальная цена за видеокарту")
+        main_menu_button = telebot.types.KeyboardButton("Главное меню")
+        markup.add(min_graphic_card_price_button)
+        markup.add(max_graphic_card_price_button)
+        markup.add(main_menu_button)
+
+        return markup
+
+    def create_graphic_cards_output_template(self, graphic_cards):
+        graphic_cards_output_template = ''
+        for graphic_card in graphic_cards:
+            graphic_card_output_template = f'*{graphic_card.name}*\
+                                             \nСтарая цена: {graphic_card.old_price} EUR\
+                                             \nНовая цена: {graphic_card.current_eur_price} EUR\
+                                             \nЦена по курсу: {graphic_card.current_rub_price} руб.\
+                                             \n{graphic_card.url}'
+            graphic_cards_output_template = graphic_cards_output_template + graphic_card_output_template + '\n\n'
+
+        return graphic_cards_output_template
+
+    def filter_graphic_cards_by_tg_user_settings(self, telegram_user):
+        graphic_cards = GraphicCard.objects.all()
+        if telegram_user.min_price:
+            graphic_cards = graphic_cards.filter(current_rub_price__gte=telegram_user.min_price)
+        if telegram_user.max_price:
+            graphic_cards = graphic_cards.filter(current_rub_price__lte=telegram_user.max_price)
+
+        return graphic_cards
+
+    def notify_tg_users_about_graphic_cards_price_change(self):
+        graphic_cards = GraphicCard.objects.filter(price_notification_request=True)
+        if not graphic_cards:
+            return False
+
+        graphic_cards_output_template = self.create_graphic_cards_output_template(graphic_cards)
+
+        tg_users = TelegramUser.objects.filter(is_active=True)
+        for tg_user in tg_users:
+            splitted_text = telebot.util.smart_split(graphic_cards_output_template, chars_per_string=3000)
+            for text in splitted_text:
+                self.send_message(
+                    tg_user.telegram_id,
+                    text,
+                    parse_mode="Markdown"
+                )
+
+        for graphic_card in graphic_cards:
+            graphic_card.price_notification_request = False
+            graphic_card.save()
+
+        return True
 
 
 class Command(BaseCommand):

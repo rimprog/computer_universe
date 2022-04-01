@@ -21,7 +21,7 @@ class Command(BaseCommand):
            graphic_card.current_rub_price = graphic_card_raw['price']['current_rub_price']
            graphic_card.old_price = graphic_card_raw['price']['old_price']
 
-           graphic_card.price_was_updated = True
+           graphic_card.price_notification_request = True
 
            graphic_card.save()
 

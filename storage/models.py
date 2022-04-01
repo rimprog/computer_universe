@@ -7,7 +7,7 @@ class GraphicCard(models.Model):
     current_eur_price = models.FloatField('текущая цена EUR')
     current_rub_price = models.FloatField('текущая цена RUB', null=True, blank=True)
     old_price = models.FloatField('старая цена', null=True, blank=True)
-    price_was_updated = models.BooleanField('цена была обновлена', default=False, blank=True)
+    price_notification_request = models.BooleanField('уведомить пользователей об изменении цены', default=False, blank=True)
 
     class Meta:
         verbose_name = 'видеокарта'
