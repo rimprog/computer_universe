@@ -13,6 +13,14 @@ import schedule
 class Command(BaseCommand):
     help = 'Script check parsing results and push tg users if graphic cards prices was updated'
 
+    def add_arguments(self, parser):
+        parser.add_argument(
+            '--seconds',
+            type=int,
+            default=30,
+            help='how often repeat task'
+        )
+
     def notify(self):
         telegram_bot = TelegramBot(settings.TELEGRAM_BOT_TOKEN)
         is_notify = telegram_bot.notify_tg_users_about_graphic_cards_price_change()
@@ -23,8 +31,7 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING('New updated cards was not found.'))
 
     def handle(self, *args, **options):
-
-        schedule.every(30).seconds.do(self.notify)
+        schedule.every(options['seconds']).seconds.do(self.notify)
 
         while True:
             schedule.run_pending()

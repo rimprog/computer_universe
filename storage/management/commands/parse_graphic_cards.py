@@ -13,6 +13,14 @@ from storage.utils.computeruniverse_parser import parse_graphic_cards_catalogue
 class Command(BaseCommand):
     help = 'Parsing graphic cards names, links, prices from https://www.computeruniverse.net/'
 
+    def add_arguments(self, parser):
+        parser.add_argument(
+            '--seconds',
+            type=int,
+            default=3,
+            help='how often repeat task'
+        )
+
     def update_graphic_card_price(self, graphic_card, graphic_card_raw):
         if graphic_card.current_eur_price != graphic_card_raw['price']['current_eur_price'] \
            or graphic_card.current_rub_price != graphic_card_raw['price']['current_rub_price'] \
@@ -72,11 +80,8 @@ class Command(BaseCommand):
         if not created_graphic_cards:
             self.stdout.write(self.style.WARNING('New graphic cards are not found\n'))
 
-    def add_arguments(self, parser):
-        pass
-
     def handle(self, *args, **options):
-        schedule.every(3).seconds.do(self.parse_graphic_cards)
+        schedule.every(options['seconds']).seconds.do(self.parse_graphic_cards)
 
         while True:
             schedule.run_pending()
